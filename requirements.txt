@@ -1,0 +1,44 @@
+# Core
+fastapi
+uvicorn[standard]
+python-dotenv
+python-multipart
+pydantic-settings
+
+# Database
+sqlalchemy
+aiosqlite
+
+# Auth
+passlib[bcrypt]
+python-jose[cryptography]
+bcrypt
+
+# Data processing
+pandas
+openpyxl
+
+# ML
+scikit-learn
+joblib
+
+# Visualization
+plotly
+
+# LLM & Agent (stretch goals)
+langchain
+langchain-openai
+langgraph
+
+# RAG (stretch goal)
+faiss-cpu
+langchain-community
+langchain-huggingface
+sentence-transformers
+
+# Frontend
+jinja2
+
+# Testing
+pytest
+httpx

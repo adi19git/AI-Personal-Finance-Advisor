@@ -1,0 +1,299 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - AI Finance Advisor{% endblock %}
+
+{% block content %}
+<!-- Welcome -->
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 fade-in gap-3">
+    <div>
+        <h4 class="fw-bold mb-1" style="color: var(--text-heading);" id="welcomeText">Good evening 👋</h4>
+        <p class="text-muted mb-0">Here's your financial overview.</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <select class="form-select rounded-pill px-4" style="width: auto;">
+            <option>This Month</option>
+            <option>Last Month</option>
+            <option>This Year</option>
+        </select>
+        <button class="btn btn-primary rounded-pill px-4" onclick="window.location.href='/import'">
+            <i class="bi bi-plus-lg me-1"></i> Add Data
+        </button>
+    </div>
+</div>
+
+<!-- Empty State -->
+<div id="emptyState" class="card text-center p-5 mb-4 d-none fade-in">
+    <div class="card-body">
+        <div class="display-1 mb-3" style="color: var(--c-primary);"><i class="bi bi-wallet2"></i></div>
+        <h3 class="fw-bold" style="color: var(--text-heading);">Let's get your finances organized</h3>
+        <p class="text-muted mb-4 mx-auto" style="max-width: 480px;">Import your bank statements to automatically categorize spending and get AI-powered insights.</p>
+        <div class="d-flex flex-wrap justify-content-center gap-3">
+            <a href="/import" class="btn btn-primary rounded-pill px-4 py-2"><i class="bi bi-cloud-arrow-up me-2"></i>Import Transactions</a>
+            <button class="btn btn-outline-primary rounded-pill px-4 py-2">Try Sample Data</button>
+        </div>
+    </div>
+</div>
+
+<!-- Dashboard Content -->
+<div id="dashboardContent" class="d-none fade-in">
+    <!-- Summary Cards -->
+    <div class="row mb-4 g-3">
+        <div class="col-md-4">
+            <div class="card stat-card h-100">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <p class="text-muted text-uppercase mb-1 fw-bold" style="font-size:.75rem; letter-spacing:.5px;">Net Cash Flow</p>
+                        <h3 class="fw-bold mb-0" style="color: var(--text-heading);" id="dashBalance">₹0</h3>
+                    </div>
+                    <div class="stat-icon icon-primary"><i class="bi bi-wallet2"></i></div>
+                </div>
+                <div class="d-flex align-items-center">
+                    <span class="badge badge-trend-up rounded-pill me-2" style="font-size:.7rem;"><i class="bi bi-arrow-up"></i> 12.5%</span>
+                    <span class="text-muted" style="font-size:.75rem;">vs last month</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card stat-card h-100">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <p class="text-muted text-uppercase mb-1 fw-bold" style="font-size:.75rem; letter-spacing:.5px;">Income</p>
+                        <h3 class="fw-bold mb-0" style="color: var(--text-heading);" id="dashIncome">₹0</h3>
+                    </div>
+                    <div class="stat-icon icon-success"><i class="bi bi-arrow-down-left"></i></div>
+                </div>
+                <div class="d-flex align-items-center">
+                    <span class="badge badge-trend-up rounded-pill me-2" style="font-size:.7rem;"><i class="bi bi-arrow-up"></i> 4.2%</span>
+                    <span class="text-muted" style="font-size:.75rem;">vs last month</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card stat-card h-100">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <p class="text-muted text-uppercase mb-1 fw-bold" style="font-size:.75rem; letter-spacing:.5px;">Total Spending</p>
+                        <h3 class="fw-bold mb-0" style="color: var(--text-heading);" id="dashExpenses">₹0</h3>
+                    </div>
+                    <div class="stat-icon icon-danger"><i class="bi bi-arrow-up-right"></i></div>
+                </div>
+                <div class="d-flex align-items-center">
+                    <span class="badge badge-trend-down rounded-pill me-2" style="font-size:.7rem;"><i class="bi bi-arrow-up"></i> 8.1%</span>
+                    <span class="text-muted" style="font-size:.75rem;">vs last month</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts + Sidebar -->
+    <div class="row mb-4 g-3">
+        <div class="col-lg-8">
+            <div class="card h-100">
+                <div class="card-header border-0 pt-4 pb-0">
+                    <h5 class="fw-bold mb-0" style="color: var(--text-heading);">Where Your Money Goes</h5>
+                </div>
+                <div class="card-body">
+                    <div id="categoryChart" style="height:320px;"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4 d-flex flex-column gap-3">
+            <!-- Financial Health -->
+            <div class="card health-card">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-3"><i class="bi bi-heart-pulse me-2"></i> Financial Health</h5>
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="progress-ring me-3" id="healthRing" style="--val:50;">
+                            <span class="ring-val" id="healthScore">50</span>
+                        </div>
+                        <div>
+                            <h6 class="fw-bold mb-1" id="healthLabel">Needs Work</h6>
+                            <p class="health-muted small mb-0" id="healthDesc">Consider reducing expenses.</p>
+                        </div>
+                    </div>
+                    <ul class="list-unstyled mb-0 small" id="healthChecks">
+                        <li class="mb-1 health-muted"><i class="bi bi-check-circle-fill me-2" style="color:#34d399;"></i> Spending tracked</li>
+                        <li class="health-muted"><i class="bi bi-check-circle-fill me-2" style="color:#34d399;"></i> AI monitoring active</li>
+                    </ul>
+                </div>
+            </div>
+            <!-- AI Insights -->
+            <div class="card flex-grow-1">
+                <div class="card-header bg-transparent border-0 pt-4 pb-2">
+                    <h5 class="fw-bold mb-0" style="color: var(--text-heading);"><i class="bi bi-magic me-2" style="color:var(--c-primary);"></i> AI Insights</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex mb-3 align-items-start">
+                        <div class="me-3 fs-4" style="color:var(--c-warning);"><i class="bi bi-lightbulb"></i></div>
+                        <p class="mb-0 small" style="color: var(--text-body);">Transport spending increased 24% this month.</p>
+                    </div>
+                    <div class="d-flex align-items-start">
+                        <div class="me-3 fs-4" style="color:var(--c-success);"><i class="bi bi-piggy-bank"></i></div>
+                        <p class="mb-0 small" style="color: var(--text-body);">Potential monthly savings: ₹8,500 by cutting subscriptions.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transactions & Anomalies -->
+    <div class="row g-3 mb-4">
+        <div class="col-lg-7">
+            <div class="card h-100">
+                <div class="card-header bg-transparent border-0 pt-4 pb-3 d-flex justify-content-between align-items-center">
+                    <h5 class="fw-bold mb-0" style="color: var(--text-heading);">Recent Transactions</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="text-uppercase small">
+                                <tr>
+                                    <th class="ps-4">Date</th>
+                                    <th>Description</th>
+                                    <th>Category</th>
+                                    <th class="text-end pe-4">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody id="transactionList">
+                                <tr><td colspan="4" class="text-center py-4 text-muted">No transactions yet.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="card h-100">
+                <div class="card-header bg-transparent border-0 pt-4 pb-3">
+                    <h5 class="fw-bold mb-0" style="color: var(--c-danger);"><i class="bi bi-exclamation-triangle-fill me-2"></i> Needs Review</h5>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush" id="anomalyList">
+                        <li class="list-group-item text-center py-5 text-muted border-0">
+                            <i class="bi bi-shield-check fs-3 d-block mb-2" style="color:var(--c-success);"></i>
+                            No anomalies detected!
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="card mb-4">
+        <div class="card-body py-3">
+            <div class="d-flex flex-wrap gap-2 justify-content-center">
+                <a href="/import" class="btn btn-outline-primary rounded-pill px-4"><i class="bi bi-cloud-arrow-up me-2"></i>Import</a>
+                <a href="/chat" class="btn btn-outline-primary rounded-pill px-4"><i class="bi bi-robot me-2"></i>Ask AI</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    requireAuth();
+    setGreeting();
+    loadDashboard();
+});
+
+function setGreeting() {
+    const h = new Date().getHours();
+    let g = 'Good evening';
+    if (h < 12) g = 'Good morning';
+    else if (h < 17) g = 'Good afternoon';
+    document.getElementById('welcomeText').textContent = g + ' 👋';
+}
+
+async function loadDashboard() {
+    try {
+        const r = await apiGet('/analytics/dashboard');
+
+        if (r.transaction_count === 0) {
+            document.getElementById('emptyState').classList.remove('d-none');
+            document.getElementById('dashboardContent').classList.add('d-none');
+            return;
+        }
+        document.getElementById('emptyState').classList.add('d-none');
+        document.getElementById('dashboardContent').classList.remove('d-none');
+
+        document.getElementById('dashBalance').textContent = formatCurrency(r.total_balance);
+        document.getElementById('dashIncome').textContent = formatCurrency(r.total_income);
+        document.getElementById('dashExpenses').textContent = formatCurrency(r.total_expenses);
+
+        // Health Score
+        const sr = r.total_income > 0 ? ((r.total_income - r.total_expenses) / r.total_income) * 100 : 0;
+        let score = 45, label = 'Needs Work', desc = 'Expenses exceed income.';
+        if (sr > 20) { score = 92; label = 'Excellent'; desc = 'Outstanding savings rate!'; }
+        else if (sr > 10) { score = 78; label = 'Good'; desc = 'Healthy savings rate.'; }
+        else if (sr > 0) { score = 62; label = 'Fair'; desc = 'Try to save more.'; }
+        document.getElementById('healthRing').style.setProperty('--val', score);
+        document.getElementById('healthScore').textContent = score;
+        document.getElementById('healthLabel').textContent = label;
+        document.getElementById('healthDesc').textContent = desc;
+
+        // Chart
+        if (r.top_categories && r.top_categories.length > 0) {
+            const isDark = getTheme() === 'dark';
+            const fc = isDark ? '#94a3b8' : '#64748b';
+            Plotly.newPlot('categoryChart', [{
+                values: r.top_categories.map(c => c.total_amount),
+                labels: r.top_categories.map(c => c.category_name),
+                type: 'pie',
+                hole: .55,
+                textinfo: 'label+percent',
+                textposition: 'outside',
+                textfont: { color: fc, size: 12 },
+                marker: {
+                    colors: ['#4f46e5','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4'],
+                    line: { width: 0 }
+                },
+                hovertemplate: '<b>%{label}</b><br>₹%{value:,.0f}<br>%{percent}<extra></extra>'
+            }], {
+                margin: { t: 20, b: 20, l: 20, r: 20 },
+                showlegend: false,
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(0,0,0,0)',
+                font: { family: 'Inter', color: fc }
+            }, { displayModeBar: false, responsive: true });
+        }
+
+        // Anomalies
+        const al = document.getElementById('anomalyList');
+        if (r.recent_anomalies && r.recent_anomalies.length > 0) {
+            al.innerHTML = r.recent_anomalies.map(a => `
+            <li class="list-group-item py-3">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <div class="fw-bold" style="color:var(--text-heading);">${a.description}</div>
+                        <span class="badge badge-cat small">${a.category_name || 'Uncategorized'}</span>
+                    </div>
+                    <span class="fw-bold" style="color:var(--c-danger);">${formatCurrency(a.amount)}</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mt-1">
+                    <small class="text-muted"><i class="bi bi-calendar3 me-1"></i>${a.date}</small>
+                    <button class="btn btn-sm btn-outline-danger rounded-pill px-3" style="font-size:.72rem;">Review</button>
+                </div>
+            </li>`).join('');
+        }
+
+        // Transactions
+        const tl = document.getElementById('transactionList');
+        if (r.recent_transactions && r.recent_transactions.length > 0) {
+            tl.innerHTML = r.recent_transactions.map(t => `
+            <tr>
+                <td class="ps-4 text-muted small">${t.date}</td>
+                <td class="fw-bold" style="color:var(--text-heading);">${t.description}</td>
+                <td><span class="badge badge-cat small">${t.category_name || 'Uncategorized'}</span></td>
+                <td class="text-end pe-4 fw-bold" style="color:${t.transaction_type === 'credit' ? 'var(--c-success)' : 'var(--text-heading)'};">
+                    ${t.transaction_type === 'credit' ? '+' : '-'}${formatCurrency(t.amount)}
+                </td>
+            </tr>`).join('');
+        }
+    } catch (e) {
+        console.error("Dashboard load failed", e);
+    }
+}
+</script>
+{% endblock %}

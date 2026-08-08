@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% block title %}AI Chat - Finance Advisor{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card chat-card" style="height: 75vh;">
+            <div class="card-header d-flex align-items-center" style="background: var(--color-primary); color: white; border-radius: 16px 16px 0 0;">
+                <i class="bi bi-robot me-2 fs-5"></i>
+                <h5 class="mb-0">AI Finance Advisor</h5>
+                <small class="ms-auto text-white-50">Powered by Grok + RAG</small>
+            </div>
+            
+            <div class="card-body overflow-auto" id="chatMessages" style="flex: 1;">
+                <div class="text-center text-muted py-5" id="chatPlaceholder">
+                    <i class="bi bi-chat-dots fs-1"></i>
+                    <p class="mt-3">Ask me anything about your finances!</p>
+                    <div class="d-flex flex-wrap justify-content-center gap-2 mt-3">
+                        <button class="btn btn-outline-primary btn-sm rounded-pill" onclick="sendQuickMessage('What is my spending summary?')">📊 Spending Summary</button>
+                        <button class="btn btn-outline-primary btn-sm rounded-pill" onclick="sendQuickMessage('Show my recent transactions')">🧾 Recent Transactions</button>
+                        <button class="btn btn-outline-primary btn-sm rounded-pill" onclick="sendQuickMessage('Do I have any anomalous transactions?')">⚠️ Anomalies</button>
+                        <button class="btn btn-outline-primary btn-sm rounded-pill" onclick="sendQuickMessage('How should I budget using the 50/30/20 rule?')">💡 Budget Tips</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card-footer">
+                <form id="chatForm" onsubmit="sendMessage(event)" class="d-flex gap-2">
+                    <input type="text" class="form-control form-control-lg" id="chatInput" placeholder="Ask about your spending, budgets, or financial tips..." autocomplete="off">
+                    <button type="submit" class="btn btn-primary btn-lg px-4" id="chatSendBtn">
+                        <i class="bi bi-send"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let sessionId = null;
+
+document.addEventListener("DOMContentLoaded", () => {
+    requireAuth();
+});
+
+function addMessage(role, content, toolCalls) {
+    const placeholder = document.getElementById('chatPlaceholder');
+    if (placeholder) placeholder.remove();
+    
+    const container = document.getElementById('chatMessages');
+    const wrapper = document.createElement('div');
+    wrapper.className = `d-flex mb-3 ${role === 'user' ? 'justify-content-end' : 'justify-content-start'}`;
+    
+    const bubble = document.createElement('div');
+    bubble.className = role === 'user'
+        ? 'chat-user-bubble rounded-3 p-3'
+        : 'chat-bot-bubble rounded-3 p-3';
+    bubble.style.maxWidth = '75%';
+    
+    // Format the content (basic markdown-like: newlines, bold)
+    let formatted = content
+        .replace(/\n/g, '<br>')
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/₹/g, '<span class="text-success fw-bold">₹</span>');
+    
+    bubble.innerHTML = formatted;
+    
+    // Show tool calls badge if any
+    if (toolCalls && toolCalls.length > 0) {
+        const toolBadge = document.createElement('div');
+        toolBadge.className = 'mt-2';
+        toolBadge.innerHTML = toolCalls.map(tc =>
+            `<span class="badge bg-info text-dark me-1"><i class="bi bi-wrench"></i> ${tc.name}</span>`
+        ).join('');
+        bubble.appendChild(toolBadge);
+    }
+    
+    wrapper.appendChild(bubble);
+    container.appendChild(wrapper);
+    container.scrollTop = container.scrollHeight;
+}
+
+function addTypingIndicator() {
+    const container = document.getElementById('chatMessages');
+    const div = document.createElement('div');
+    div.id = 'typingIndicator';
+    div.className = 'd-flex justify-content-start mb-3';
+    div.innerHTML = `
+        <div class="chat-bot-bubble rounded-3 p-3">
+            <div class="typing-dots">
+                <span class="spinner-grow spinner-grow-sm text-primary me-1" style="width: 0.5rem; height: 0.5rem;"></span>
+                <span class="spinner-grow spinner-grow-sm text-primary me-1" style="width: 0.5rem; height: 0.5rem; animation-delay: 0.2s;"></span>
+                <span class="spinner-grow spinner-grow-sm text-primary" style="width: 0.5rem; height: 0.5rem; animation-delay: 0.4s;"></span>
+            </div>
+        </div>`;
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+}
+
+function removeTypingIndicator() {
+    const indicator = document.getElementById('typingIndicator');
+    if (indicator) indicator.remove();
+}
+
+async function sendMessage(e) {
+    e.preventDefault();
+    const input = document.getElementById('chatInput');
+    const message = input.value.trim();
+    if (!message) return;
+    
+    input.value = '';
+    addMessage('user', message);
+    addTypingIndicator();
+    
+    document.getElementById('chatSendBtn').disabled = true;
+    
+    try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('/api/chat/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                message: message,
+                session_id: sessionId
+            })
+        });
+        
+        removeTypingIndicator();
+        
+        if (!response.ok) {
+            const err = await response.json();
+            addMessage('assistant', `Error: ${err.detail || 'Something went wrong.'}`);
+            return;
+        }
+        
+        const data = await response.json();
+        sessionId = data.session_id;
+        addMessage('assistant', data.reply, data.tool_calls);
+    } catch (err) {
+        removeTypingIndicator();
+        addMessage('assistant', 'Network error. Please try again.');
+    } finally {
+        document.getElementById('chatSendBtn').disabled = false;
+        input.focus();
+    }
+}
+
+function sendQuickMessage(msg) {
+    document.getElementById('chatInput').value = msg;
+    sendMessage(new Event('submit'));
+}
+</script>
+{% endblock %}

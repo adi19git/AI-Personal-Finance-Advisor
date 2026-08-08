@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block title %}Import - AI Finance Advisor{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-4">
+    <div class="col-md-10">
+        <div class="card shadow-sm">
+            <div class="card-header bg-transparent pt-4 pb-0 border-bottom-0">
+                <h4 class="card-title fw-bold">Import Transactions</h4>
+                <p class="text-muted">Upload your bank statement as a CSV or Excel file.</p>
+            </div>
+            <div class="card-body">
+                <div id="importAlert" class="alert d-none"></div>
+
+                <form id="importForm" onsubmit="handleImport(event)">
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Select File</label>
+                        <input type="file" class="form-control form-control-lg" id="importFile" accept=".csv, .xls, .xlsx" required>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-lg w-100" id="importBtn">
+                        <i class="bi bi-cloud-arrow-up me-2"></i> Upload and Analyze
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Results Table (hidden until import completes) -->
+        <div id="resultsSection" class="d-none mt-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-transparent d-flex align-items-center justify-content-between">
+                    <h5 class="mb-0"><i class="bi bi-table me-2"></i>Imported Transactions</h5>
+                    <span id="resultsBadge" class="badge bg-primary fs-6"></span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Description</th>
+                                    <th class="text-end">Amount (₹)</th>
+                                    <th>Type</th>
+                                    <th>Category</th>
+                                    <th>Anomaly</th>
+                                </tr>
+                            </thead>
+                            <tbody id="resultsBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-4 shadow-sm border-info">
+            <div class="card-body">
+                <h5 class="text-info"><i class="bi bi-info-circle"></i> How it works</h5>
+                <p class="mb-1">Our AI categorizer analyzes your transaction descriptions to automatically tag them (e.g. Food, Transport, Utilities).</p>
+                <p class="mb-0">The Anomaly Detector runs in the background to flag unusual spending based on your historical patterns.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    requireAuth();
+});
+
+async function handleImport(e) {
+    e.preventDefault();
+    
+    const fileInput = document.getElementById('importFile');
+    const alertBox = document.getElementById('importAlert');
+    const btn = document.getElementById('importBtn');
+    const resultsSection = document.getElementById('resultsSection');
+    
+    if (fileInput.files.length === 0) return;
+    
+    const formData = new FormData();
+    formData.append("file", fileInput.files[0]);
+    
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Processing...';
+    resultsSection.classList.add('d-none');
+    
+    try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('/api/import/', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        alertBox.classList.remove('d-none', 'alert-danger', 'alert-success');
+        if (!response.ok) {
+            alertBox.classList.add('alert-danger');
+            alertBox.textContent = data.detail || "An error occurred.";
+        } else {
+            alertBox.classList.add('alert-success');
+            alertBox.innerHTML = `<i class="bi bi-check-circle me-2"></i>${data.message}`;
+            fileInput.value = '';
+            
+            // Show results table
+            if (data.transactions && data.transactions.length > 0) {
+                renderResults(data.transactions);
+            }
+        }
+    } catch (err) {
+        alertBox.classList.remove('d-none', 'alert-success');
+        alertBox.classList.add('alert-danger');
+        alertBox.textContent = "Network error occurred.";
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-cloud-arrow-up me-2"></i> Upload and Analyze';
+    }
+}
+
+function renderResults(transactions) {
+    const section = document.getElementById('resultsSection');
+    const badge = document.getElementById('resultsBadge');
+    const tbody = document.getElementById('resultsBody');
+    
+    badge.textContent = `${transactions.length} records`;
+    tbody.innerHTML = '';
+    
+    transactions.forEach(tx => {
+        const row = document.createElement('tr');
+        
+        const typeClass = tx.type === 'credit' ? 'text-success' : 'text-danger';
+        const typeIcon = tx.type === 'credit' ? 'bi-arrow-down-circle' : 'bi-arrow-up-circle';
+        const anomalyBadge = tx.is_anomaly 
+            ? `<span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle"></i> ${tx.anomaly_score || ''}</span>` 
+            : '<span class="badge bg-light text-muted">Normal</span>';
+        
+        row.innerHTML = `
+            <td class="text-nowrap">${tx.date}</td>
+            <td>${tx.description}</td>
+            <td class="text-end fw-bold ${typeClass}">₹${tx.amount.toFixed(2)}</td>
+            <td><span class="${typeClass}"><i class="bi ${typeIcon} me-1"></i>${tx.type}</span></td>
+            <td><span class="badge bg-info text-dark">${tx.category}</span></td>
+            <td>${anomalyBadge}</td>
+        `;
+        tbody.appendChild(row);
+    });
+    
+    section.classList.remove('d-none');
+}
+</script>
+{% endblock %}

@@ -1,0 +1,11 @@
+.env
+*.pyc
+__pycache__/
+venv/
+data/finance.db
+ml_models/*.pkl
+ml_models/*.joblib
+.pytest_cache/
+*.egg-info/
+dist/
+build/
