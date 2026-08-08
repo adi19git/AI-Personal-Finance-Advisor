@@ -19,6 +19,54 @@ AI Personal Finance Advisor is a modern, intelligent web application designed to
 
 ## 🛠️ Architecture & Tech Stack
 
+```mermaid
+graph TD
+    %% User and Frontend
+    User([User / Browser])
+    Frontend[Frontend<br>HTML, CSS, JS, Plotly]
+
+    %% Backend (FastAPI Core)
+    subgraph FastAPI Backend
+        API[FastAPI Routers<br>Auth, Analytics, Import, Chat]
+        Services[Business Logic Services]
+        
+        %% Machine Learning
+        subgraph ML Pipeline
+            CatML[Categorizer<br>TF-IDF + Logistic Regression]
+            AnomalyML[Anomaly Detector<br>Isolation Forest]
+        end
+        
+        %% LangGraph Agent
+        subgraph AI Agent
+            LG[LangGraph State Machine]
+            Tools[Local API Tools]
+            RAG[FAISS Vector Store<br>Document Retrieval]
+            LLM((LLM Provider))
+        end
+    end
+
+    %% Database
+    DB[(SQLite Database<br>SQLAlchemy)]
+
+    %% Connections
+    User <-->|HTTP/REST| Frontend
+    Frontend <-->|API Calls| API
+    
+    API --> Services
+    Services <--> DB
+    
+    %% ML connections
+    Services -->|On Data Import| CatML
+    Services -->|On Data Import| AnomalyML
+    
+    %% AI Agent connections
+    API -->|Chat Request| LG
+    LG <--> Tools
+    LG <--> RAG
+    LG <--> LLM
+    Tools <--> DB
+```
+
 The application is built using a modern, scalable architecture separated into distinct layers:
 
 ### Backend
