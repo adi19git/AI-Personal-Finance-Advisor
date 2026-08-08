@@ -1,6 +1,6 @@
 # 💰 AI Personal Finance Advisor
 
-![App Screenshot](frontend/static/screenshot.png) <!-- Feel free to add a screenshot here -->
+<!-- Feel free to add a screenshot here -->
 
 AI Personal Finance Advisor is a modern, intelligent web application designed to help users manage their finances effortlessly. It goes beyond simple tracking by utilizing Machine Learning (ML) and Large Language Models (LLMs) to automatically categorize transactions, detect unusual spending anomalies, and provide personalized financial advice through a conversational AI assistant.
 
